@@ -1,0 +1,138 @@
+Function progressive(bracketList As Range, rateList As Range, income As Double) As Double
+
+' Returns tax based on progressive income tax table
+
+    Dim r() As Variant, b() As Variant
+    Dim tax, bracketTax As Double
+    Dim taxArr() As Double
+    Dim rate As Double
+    Dim bracket, nextBracket, highBracket As Double
+    Dim i, leng As Integer
+        
+' Check if ranges have same number of rows and columns
+
+    If rateList.Rows.Count <> bracketList.Rows.Count Or rateList.Columns.Count <> bracketList.Columns.Count Then
+        progressive = CVErr(xlErrRef) ' return #REF! error
+        Exit Function
+    End If
+
+' Convert ranges to arrays
+
+    r = rateList.Value
+    b = bracketList.Value
+
+'Initialize variables
+
+    tax = 0
+    bracketTax = 0
+    nextBracket = 0
+              
+    ' Output array length
+    leng = UBound(r)
+    ReDim taxArr(leng)
+    
+    
+'Accumulate tax on each bracket
+    
+    ' Loop length
+    leng = UBound(r) - 1
+
+    For i = 1 To leng
+        rate = r(i, 1)
+        bracket = b(i, 1)
+        nextBracket = b(i + 1, 1)
+        
+        ' Income higher than this bracket
+        If income > nextBracket Then
+            bracketTax = rate * (nextBracket - bracket)
+        End If
+        
+        ' Income is in this bracket
+        If income > bracket And income <= nextBracket Then
+            bracketTax = rate * (income - bracket)
+        End If
+        
+        If income <= bracket Then
+            bracketTax = 0
+        End If
+        
+        bracketTax = Application.WorksheetFunction.Round(bracketTax, 2)
+        taxArr(i) = bracketTax
+        tax = tax + bracketTax
+    Next i
+    
+' Income is zero or negative
+    
+    If income <= 0 Then
+        tax = r(1, 1)
+    End If
+    
+' Income is in highest bracket
+
+    highBracket = WorksheetFunction.Max(b)
+    If income > highBracket Then
+        bracketTax = r(UBound(r), 1) * (income - highBracket)
+        bracketTax = Application.WorksheetFunction.Round(bracketTax, 2)
+        tax = tax + bracketTax
+    End If
+    
+' Round to 2 digits
+    tax = Application.WorksheetFunction.Round(tax, 2)
+    
+' Return value to program
+    progressive = tax
+
+End Function
+
+Function marginal(bracket As Range, rate As Range, income As Double) As Double
+
+'   Function returns marginal tax rate based on tax table
+'   rate is a list of tax rates
+'   bracket is a list of tax brackets by income
+'   Income is taxable income
+
+    Dim r() As Variant, b() As Variant
+    Dim highBracket As Double
+    Dim m As Double
+    Dim i As Integer
+        
+' Check if ranges have same number of rows and columns
+
+    If rate.Rows.Count <> bracket.Rows.Count Or rate.Columns.Count <> bracket.Columns.Count Then
+        marginal = CVErr(xlErrRef) ' return #REF! error
+        Exit Function
+    End If
+
+' Convert ranges to arrays
+
+    r = rate.Value
+    b = bracket.Value
+
+' Initialize values
+
+    m = 0
+    i = 0
+        
+    For i = LBound(b) To UBound(b)
+        If income < b(i, 1) Then
+            m = r(i, 1)
+            'Exit loop
+            i = UBound(b)
+        End If
+    Next i
+    
+' Income is zero or negative
+    
+    If income <= 0 Then
+        m = r(1, 1)
+    End If
+    
+' Income is in highest defined bracket
+
+    highBracket = WorksheetFunction.Max(b)
+    If income >= highBracket Then
+        m = r(UBound(r), 1)
+    End If
+
+    marginal = m
+End Function
